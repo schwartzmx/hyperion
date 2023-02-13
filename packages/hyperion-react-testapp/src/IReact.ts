@@ -20,7 +20,7 @@ export function init() {
   const IJsxRuntimeModule = IReact.interceptRuntime("react/jsx-dev-runtime", ReactDev as any, []);
   const IReactDOMModule = IReactDOM.intercept("react-dom", ReactDOM, []);
 
-  const channel = new Channel<ALSurface.ALChannelSurfaceEvent>;
+  const channel = new Channel<ALSurface.ALChannelSurfaceEvent>();
 
   Surface.init({
     ReactModule: React as any,
