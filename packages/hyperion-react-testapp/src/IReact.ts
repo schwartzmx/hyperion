@@ -45,6 +45,11 @@ export function init() {
       cacheElementReactInfo: true,
       channel
     },
+    uiKeyEventPublisher: {
+      cacheElementReactInfo: true,
+      channel,
+      keyEvents: ['keydown', 'keyup'],
+    },
     heartbeat: {
       channel,
       heartbeatInterval: 30 * 1000
@@ -67,6 +72,8 @@ export function init() {
     'al_surface_mutation_event',
     'al_network_request',
     'al_network_response',
+    'al_ui_key_event_capture',
+    'al_ui_key_event_bubble',
   ] as const).forEach(eventName => {
     channel.on(eventName).add(ev => {
       console.log(eventName, ev, performance.now());

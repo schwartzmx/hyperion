@@ -14,6 +14,7 @@ import * as ALSurface from "./ALSurface";
 import * as ALSurfaceMutationPublisher from "./ALSurfaceMutationPublisher";
 import { ALSharedInitOptions } from "./ALType";
 import * as ALUIeventPublisher from "./ALUIEventPublisher";
+import * as ALUIKeyPressEventPublisher from "./ALUIKeyPressEventPublisher";
 
 /**
  * This type extracts the union of all events types so that external modules
@@ -24,7 +25,8 @@ export type ALChannelEvent = (
   ALUIeventPublisher.InitOptions['channel'] &
   ALHeartbeat.InitOptions['channel'] &
   ALSurfaceMutationPublisher.InitOptions['channel'] &
-  ALNetworkPublisher.InitOptions['channel']
+  ALNetworkPublisher.InitOptions['channel'] &
+  ALUIKeyPressEventPublisher.InitOptions['channel']
 ) extends Channel<infer EventType> ? EventType : never;
 
 type PublicInitOptions<T> = Omit<T, keyof ALSharedInitOptions>;
@@ -38,6 +40,7 @@ export type InitOptions = Types.Options<
     heartbeat?: ALHeartbeat.InitOptions;
     surfaceMutationPublisher?: PublicInitOptions<ALSurfaceMutationPublisher.InitOptions>;
     network?: PublicInitOptions<ALNetworkPublisher.InitOptions>;
+    uiKeyEventPublisher?: Omit<ALUIKeyPressEventPublisher.InitOptions, keyof ALSharedInitOptions>;
   }
 >;
 
@@ -48,7 +51,7 @@ export type InitResults = Readonly<{
 let cachedResults: InitResults | null = null;
 
 /**
- * 
+ *
  * @param options enables various features with their own init option
  * @returns true if initilized (the first time) or false if it is already initialized.
  */
@@ -71,6 +74,13 @@ export function init(options: InitOptions): boolean {
       ...sharedOptions,
       ...options.uiEventPublisher
     });
+  }
+
+  if (options.uiKeyEventPublisher) {
+    ALUIKeyPressEventPublisher.publish({
+      ...sharedOptions,
+      ...options.uiKeyEventPublisher
+    })
   }
 
   if (options.heartbeat) {
