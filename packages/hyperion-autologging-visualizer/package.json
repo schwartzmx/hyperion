@@ -1,0 +1,55 @@
+{
+  "scope": "@hyperion",
+  "name": "@hyperion/hyperion-autologging-visualizer",
+  "description": "Tools for visualizing autologging events captured within the application.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "build-react": "react-scripts build",
+    "watch": "npm run build -- --watch",
+    "start": "npm run watch",
+    "test": "npm run build & jest"
+  },
+  "workspaces": [
+    "../devtools",
+    "../global",
+    "../hook",
+    "../hyperion-dom",
+    "../hyperion-react",
+    "../hyperion-autologging"
+  ],
+  "dependencies": {
+    "@hyperion/global": "^0.1.0",
+    "@hyperion/hook": "^0.1.0",
+    "@hyperion/hyperion-dom": "^0.1.0",
+    "@hyperion/hyperion-react": "^0.1.0",
+    "@hyperion/hyperion-autologging": "^0.1.0"
+  },
+  "peerDependencies": {
+    "@types/react": "^18.2.14",
+    "@types/react-dom": "^18.2.7"
+  },
+  "devDependencies": {
+    "@hyperion/devtools": "^0.1.0",
+    "@types/jest": "^29.5.3"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
