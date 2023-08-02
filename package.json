@@ -56,12 +56,14 @@
     "./packages/hyperion-flowlet",
     "./packages/hyperion-react",
     "./packages/hyperion-autologging",
+    "./packages/hyperion-autologging-visualizer",
     "./packages/hyperion-util"
   ],
   "dependencies": {
     "@hyperion/global": "^0.1.0",
     "@hyperion/hook": "^0.1.0",
     "@hyperion/hyperion-autologging": "^0.1.0",
+    "@hyperion/hyperion-autologging-visualizer": "^0.1.0",
     "@hyperion/hyperion-core": "^0.1.0",
     "@hyperion/hyperion-dom": "^0.1.0",
     "@hyperion/hyperion-flowlet": "^0.1.0",

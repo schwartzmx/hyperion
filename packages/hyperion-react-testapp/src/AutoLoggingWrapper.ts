@@ -15,6 +15,14 @@ import { ALElementText } from "@hyperion/hyperion-autologging/src/ALInteractable
 
 export let interceptionStatus = "disabled";
 
+
+export const channel = new Channel<
+  AutoLogging.ALChannelEvent &
+  { test: [number, string] }
+>();
+channel.on("test").add((i, s) => { // Showing channel can be extend beyond expected types
+});
+
 export function init() {
   interceptionStatus = "enabled";
 
@@ -22,13 +30,6 @@ export function init() {
   const IJsxRuntimeModule = IReact.interceptRuntime("react/jsx-dev-runtime", ReactDev as any, []);
   const IReactDOMModule = IReactDOM.intercept("react-dom", ReactDOM, []);
 
-  const channel = new Channel<
-    AutoLogging.ALChannelEvent &
-    { test: [number, string] }
-  >();
-  channel.on("test").add((i, s) => { // Showing channel can be extend beyond expected types
-
-  });
 
   const testCompValidator = (name: string) => !name.match(/(^Surface(Proxy)?)/);
 

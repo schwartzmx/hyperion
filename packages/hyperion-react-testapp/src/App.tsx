@@ -13,6 +13,7 @@ import DynamicSvgComponent from './component/DynamicSvgComponent';
 import ElementNameComponent from './component/ElementNameComponent';
 import TextComponent from './component/TextComponent';
 import RecursiveRuncComponent from "./component/RecursiveFuncComponent";
+import ALSessionGraph from "@hyperion/hyperion-autologging-visualizer/src/ALSessionGraph";
 
 function InitComp() {
   const [count, setCount] = React.useState(0);
@@ -39,7 +40,7 @@ function App() {
   return (
     <div className="App">
       <div>
-        {/* <Counter></Counter> */}
+        <ALSessionGraph />
       </div>
       <div>
         <NestedComponent></NestedComponent>
