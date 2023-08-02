@@ -13,7 +13,8 @@ import DynamicSvgComponent from './component/DynamicSvgComponent';
 import ElementNameComponent from './component/ElementNameComponent';
 import TextComponent from './component/TextComponent';
 import RecursiveRuncComponent from "./component/RecursiveFuncComponent";
-import ALSessionGraph from "@hyperion/hyperion-autologging-visualizer/src/ALSessionGraph";
+// import ALSessionGraph from "@hyperion/hyperion-autologging-visualizer/src/components/ALSessionGraph";
+import ALSessionGraph from "./component/ALSessionGraph";
 
 function InitComp() {
   const [count, setCount] = React.useState(0);

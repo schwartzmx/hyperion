@@ -152,12 +152,12 @@ export function getSurfaceRenderer(defaultALSurfaceHOC?: ALSurface.ALSurfaceHOC)
 
 /**
  * Gets the init options passed when initializing AutoLogging.
- * Can be useful to get configured channels and other information after framework initialization.
+ * Can be useful to get configured channels, registered events, and other information after framework initialization.
  */
 export function getInitOptions(): InitOptions {
-  const initOptions = cachedResults?.initOptions;
+  const options = cachedResults?.initOptions;
   assert(
-    initOptions != null,
+    options != null,
     "AutoLogging must have been initilized first. Did you forget to call .init() functions?",
     {
       logger: {
@@ -168,5 +168,5 @@ export function getInitOptions(): InitOptions {
       }
     }
   );
-  return initOptions;
+  return options;
 }

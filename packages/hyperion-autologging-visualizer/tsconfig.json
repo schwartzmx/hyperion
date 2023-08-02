@@ -1,11 +1,26 @@
 {
-  // see https://www.typescriptlang.org/tsconfig to better understand tsconfigs
-  "extends": "@hyperion/devtools",
   "compilerOptions": {
-    // "jsx": "react-jsx",
-    "jsx": "preserve",
+    "target": "ES2015",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    // "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx"
   },
   "include": [
-    "src",
-  ],
+    "src"
+  ]
 }
