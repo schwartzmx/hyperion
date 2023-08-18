@@ -2,8 +2,8 @@
  * Copyright (c) Meta Platforms, Inc. and affiliates. All Rights Reserved.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Props, Surface } from "./Surface";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Surface } from "./Surface";
 
 function ResultViewer(props: { text: string }) {
   const ref = useRef<HTMLDivElement>(null);

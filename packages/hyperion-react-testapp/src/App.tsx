@@ -3,10 +3,8 @@
  */
 
 import React from 'react';
-import logo from './logo.svg';
 import './App.css';
 import LargeComp from './component/LargeComponent';
-import Counter from "./component/Counter";
 import NestedComponent from './component/NestedComponent';
 import { PortalBodyContainerComponent } from './component/PortalComponent';
 import DynamicSvgComponent from './component/DynamicSvgComponent';
@@ -15,24 +13,6 @@ import TextComponent from './component/TextComponent';
 import RecursiveRuncComponent from "./component/RecursiveFuncComponent";
 // import ALSessionGraph from "@hyperion/hyperion-autologging-visualizer/src/components/ALSessionGraph";
 import ALSessionGraph from "./component/ALSessionGraph";
-
-function InitComp() {
-  const [count, setCount] = React.useState(0);
-
-  const handleClick = () => {
-    setCount(count => {
-      console.log('count is ', count);
-      return count + 1;
-    });
-  };
-
-  console.log('Re-rendering the InitComp');
-
-  return (<div>
-    <button onClick={handleClick}>Click!</button>
-    <p>Click Count: {count}</p>
-  </div>);
-}
 
 function App() {
 
