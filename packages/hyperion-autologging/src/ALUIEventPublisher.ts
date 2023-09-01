@@ -161,7 +161,7 @@ function getCommonEventData<T extends keyof DocumentEventMap>(eventConfig: UIEve
  * and filtering of events is configured via {@link UIEventConfig}.
  */
 export function publish(options: InitOptions): void {
-  const { uiEvents, flowletManager, channel, domSurfaceAttributeName } = options;
+  const { uiEvents, flowletManager, channel, domSurfaceAttributeName, isInBrowser = true } = options;
 
   let lastUIEvent: CurrentUIEvent | null;
   const defaultTopFlowlet = new flowletManager.flowletCtor("/");
@@ -170,8 +170,13 @@ export function publish(options: InitOptions): void {
     const { eventName, cacheElementReactInfo = false } = eventConfig;
 
     // the following will ensure that repeated items in the list won't have double handlers
-    if (trackInteractable(eventName)) {
+    if (trackInteractable(eventName, isInBrowser)) {
       // Already handled
+      return;
+    }
+
+    // If we aren't running in the browser, just exit and don't register event handlers
+    if (!isInBrowser) {
       return;
     }
 

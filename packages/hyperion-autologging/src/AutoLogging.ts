@@ -5,7 +5,6 @@
 'use strict';
 
 import { assert } from "@hyperion/global";
-import global from "@hyperion/global/src/global";
 import { Channel } from "@hyperion/hook/src/Channel";
 import { initFlowletTrackers } from "@hyperion/hyperion-flowlet/src/Index";
 import * as IReactComponent from "@hyperion/hyperion-react/src/IReactComponent";
@@ -63,6 +62,7 @@ let cachedResults: InitResults | null = null;
  * @returns true if initilized (the first time) or false if it is already initialized.
  */
 export function init(options: InitOptions): boolean {
+  const { isInBrowser = true } = options;
   if (cachedResults !== null) {
     return false;
   }
@@ -71,7 +71,7 @@ export function init(options: InitOptions): boolean {
     setComponentNameValidator(options.componentNameValidator);
   }
 
-  if (typeof global !== 'undefined' && (global as Window)?.document?.createElement != null) {
+  if (isInBrowser) {
     initFlowletTrackers(options.flowletManager);
   }
 
@@ -84,19 +84,21 @@ export function init(options: InitOptions): boolean {
   if (
     options.enableReactComponentVisitors ||
     !options.surface.disableReactDomPropsExtension ||
-    !options.surface.disableReactFlowlet
+    (!options.surface.disableReactFlowlet && isInBrowser)
   ) {
     IReactComponent.init(options.react);
   }
 
-  if (options.elementText) {
+  if (isInBrowser && options.elementText) {
     ALInteractableDOMElement.init(options.elementText);
   }
 
-  if (options.flowletPublisher) {
+  if (isInBrowser && options.flowletPublisher) {
     ALFlowletPublisher.publish(options.flowletPublisher);
   }
 
+  // These indirectly apply some interactable-related attributes,  such as data-<event>able.
+  // So even on the server we need to register these.
   if (options.uiEventPublisher) {
     ALUIEventPublisher.publish({
       ...sharedOptions,
@@ -104,18 +106,18 @@ export function init(options: InitOptions): boolean {
     });
   }
 
-  if (options.heartbeat) {
+  if (isInBrowser && options.heartbeat) {
     ALHeartbeat.start(options.heartbeat);
   }
 
-  if (options.surfaceMutationPublisher) {
+  if (isInBrowser && options.surfaceMutationPublisher) {
     ALSurfaceMutationPublisher.publish({
       ...sharedOptions,
       ...options.surfaceMutationPublisher
     });
   }
 
-  if (options.network) {
+  if (isInBrowser && options.network) {
     ALNetworkPublisher.publish({
       ...sharedOptions,
       ...options.network

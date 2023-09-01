@@ -4,6 +4,8 @@
 
 'use strict';
 
+import { canUseDOM } from "./ExecutionEnvironment";
+
 type TimeoutID = number | any /* React expects Timeout?! */;
 
 /**
@@ -44,7 +46,9 @@ export class TimedTrigger {
       this._timeoutID = setTimeout(() => {
         this._timerFired = true;
         this.run();
-      }, this._delay);
+      },
+        // Server-side override and use 0 delay.
+        canUseDOM ? this._delay : 0);
     }
   }
 

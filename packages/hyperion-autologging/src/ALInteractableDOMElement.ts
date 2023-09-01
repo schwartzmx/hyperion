@@ -84,7 +84,10 @@ function ignoreInteractiveElement(node: HTMLElement) {
 
 const TrackedEvents = new Set<string>();
 
-let installHandlers = () => {
+let installHandlers = (isInBrowser: boolean = true) => {
+  if (!isInBrowser) {
+    return;
+  }
   IEventTarget.addEventListener.onArgsObserverAdd(function (
     this: EventTarget,
     event,
@@ -249,8 +252,8 @@ let installHandlers = () => {
   installHandlers = () => { }; // Done doing stuff!
 }
 
-export function trackInteractable(eventName: string): boolean {
-  installHandlers();
+export function trackInteractable(eventName: string, isInBrowser: boolean = true): boolean {
+  installHandlers(isInBrowser);
   const alreadyTracked = TrackedEvents.has(eventName);
   TrackedEvents.add(eventName);
   return alreadyTracked;

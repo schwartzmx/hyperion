@@ -36,7 +36,7 @@ export class SessionPersistentData<T> {
           SessionPersistentData.pending.clear();
           SessionPersistentData.runner = null;
         },
-        SESSION_DATA_SAVE_INTERVAL
+        SESSION_DATA_SAVE_INTERVAL,
       );
     } else {
       SessionPersistentData.runner.delay(); // If not saved yet, postpone
