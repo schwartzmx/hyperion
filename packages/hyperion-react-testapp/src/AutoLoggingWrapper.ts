@@ -29,7 +29,6 @@ export function init() {
 
   Visualizer.init({
     flowletManager,
-    domSurfaceAttributeName,
     channel,
   });
 
@@ -50,7 +49,6 @@ export function init() {
 
   AutoLogging.init({
     flowletManager,
-    domSurfaceAttributeName,
     componentNameValidator: testCompValidator,
     flowletPublisher: {
       channel
@@ -83,6 +81,12 @@ export function init() {
           eventName: 'click',
           cacheElementReactInfo: true,
           eventFilter: (domEvent) => domEvent.isTrusted
+        },
+        {
+          eventName: 'mouseover',
+          cacheElementReactInfo: true,
+          eventFilter: (domEvent) => domEvent.isTrusted,
+          bailReactFiberTraversal: (foundComponent, depth) => foundComponent || depth >= 10
         },
         {
           eventName: 'keydown',

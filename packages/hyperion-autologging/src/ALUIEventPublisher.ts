@@ -67,6 +67,8 @@ export type ALChannelUIEvent = Readonly<{
   al_ui_event: [ALUIEventData],
 }>;
 
+export type BailReactFiberTraversal = (foundReactComponent: boolean, depth: number) => boolean;
+
 const MAX_CAPTURE_TO_BUBBLE_DELAY_MS = 500;
 
 type CurrentUIEvent = {
@@ -87,6 +89,8 @@ type UIEventConfig<T = EventHandlerMap> = {
     interactableElementsOnly?: boolean;
     // Whether to cache element's react information on capture, defaults to false.
     cacheElementReactInfo?: boolean;
+    // Whether to stop react fiber traversing in the case of `cacheElementReactInfo`,  the callable takes whether a component name was found yet and the depth, returning a boolean to stop (true) or continue (false).
+    bailReactFiberTraversal?: BailReactFiberTraversal;
   }>
 }[keyof T];
 
@@ -171,7 +175,7 @@ export function publish(options: InitOptions): void {
   let lastUIEvent: CurrentUIEvent | null;
 
   uiEvents.forEach((eventConfig => {
-    const { eventName, cacheElementReactInfo = false } = eventConfig;
+    const { eventName, cacheElementReactInfo = false, bailReactFiberTraversal = undefined } = eventConfig;
 
     // the following will ensure that repeated items in the list won't have double handlers
     if (trackInteractable(eventName)) {
@@ -212,7 +216,7 @@ export function publish(options: InitOptions): void {
       }
       let reactComponentData: ReactComponentData | null = null;
       if (targetElement && cacheElementReactInfo) {
-        const elementInfo = ALElementInfo.getOrCreate(targetElement);
+        const elementInfo = ALElementInfo.getOrCreate(targetElement, bailReactFiberTraversal);
         reactComponentData = elementInfo.getReactComponentData();
       }
       const elementText = getElementTextEvent(element, surface);
