@@ -100,7 +100,6 @@ export function publish(options: InitOptions): void {
             surface,
             element,
             addTime: timestamp,
-            flowlet: event.flowlet,
             reactComponentName: reactComponentData?.name,
             reactComponentStack: reactComponentData?.stack,
             ...elementText,

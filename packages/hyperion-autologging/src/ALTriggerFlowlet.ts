@@ -129,7 +129,7 @@ export function init(options: InitOptions) {
        * We then want to do one extra event handler of our own, before every other handler the very first time such event handler is installed.
        * This handler ensures that the event has the right extended fields.
        * Here if we call the normal addEventListener, it will again bring us back to this very interception and we go into an infinite loop!
-       * We do know that the goal of this callback is to update the triggerFlowlet and nothing else matters. So, we can bypass all of 
+       * We do know that the goal of this callback is to update the triggerFlowlet and nothing else matters. So, we can bypass all of
        * the other logic by calling the original function.
        */
       IEventTarget.addEventListener.getOriginal().call(
@@ -168,9 +168,9 @@ export function init(options: InitOptions) {
 
     // Track surface flowlet roots
     channel.addListener('al_surface_mount', event => {
-      const { surface, flowlet } = event;
-      ALSurfaceContextDataMap.set(surface, flowlet);
-      let rootFlowlet = flowlet;
+      const { surface, callFlowlet } = event;
+      ALSurfaceContextDataMap.set(surface, callFlowlet);
+      let rootFlowlet = callFlowlet;
       while (rootFlowlet.parent) {
         rootFlowlet = rootFlowlet.parent;
       }
@@ -178,7 +178,7 @@ export function init(options: InitOptions) {
     });
     channel.addListener('al_surface_unmount', event => {
       ALSurfaceContextDataMap.delete(event.surface);
-      activeRootFlowlets.delete(event.flowlet);
+      activeRootFlowlets.delete(event.callFlowlet);
     });
   }
 
@@ -279,10 +279,10 @@ export function init(options: InitOptions) {
         setterInterceptor?.onBeforeCallObserverAdd(() => {
           /**
            * when someone calls the setter, before anything happens we pickup the
-           * trigger flowlet from the top of the stack. 
+           * trigger flowlet from the top of the stack.
            * Then we assign this trigger flowlet to all surfcce flowlet roots so that
            * any other method that is called during rending of the components can see the trigger.
-           * 
+           *
            * Since the wrapped setter will call .push() after args observer is called,
            * we can still access .top() of the caller.
            */
@@ -397,5 +397,3 @@ export function init(options: InitOptions) {
     );
   }
 }
-
-

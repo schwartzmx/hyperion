@@ -226,7 +226,7 @@ function setupDomElementSurfaceAttribute(options: InitOptions): void {
 
 
 export function init(options: InitOptions): ALSurfaceHOC {
-  const { flowletManager} = options;
+  const { flowletManager } = options;
   const { ReactModule } = options.react;
 
   setupDomElementSurfaceAttribute(options);
@@ -322,7 +322,7 @@ export function init(options: InitOptions): ALSurfaceHOC {
 
         const event: ALChannelSurfaceEventData = {
           surface: domAttributeValue,
-          flowlet,
+          callFlowlet: flowlet,
           triggerFlowlet: flowlet.data.triggerFlowlet,
           metadata,
           element: document.querySelector(`[${domAttributeName}='${domAttributeValue}']`)

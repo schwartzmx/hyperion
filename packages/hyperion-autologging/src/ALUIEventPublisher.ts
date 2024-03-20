@@ -204,11 +204,11 @@ export function publish(options: InitOptions): void {
         flowletName += `${separator}element=${autoLoggingID}`;
       }
       flowletName += ')';
-      let flowlet = new flowletManager.flowletCtor(flowletName, ALUIEventGroupPublisher.getGroupRootFlowlet(event));
+      let callFlowlet = new flowletManager.flowletCtor(flowletName, ALUIEventGroupPublisher.getGroupRootFlowlet(event));
       if (shouldPushPopFlowlet(event)) {
-        uiEventFlowletManager.push(flowlet);
-        flowlet = flowletManager.push(flowlet);
-        activeUIEventFlowlets.set(eventName, flowlet);
+        uiEventFlowletManager.push(callFlowlet);
+        callFlowlet = flowletManager.push(callFlowlet);
+        activeUIEventFlowlets.set(eventName, callFlowlet);
       }
       let reactComponentData: ReactComponentData | null = null;
       if (targetElement && cacheElementReactInfo) {
@@ -218,8 +218,8 @@ export function publish(options: InitOptions): void {
       const elementText = getElementTextEvent(element, surface);
       const eventData: ALUIEventCaptureData = {
         ...uiEventData,
-        flowlet,
-        triggerFlowlet: flowlet,
+        callFlowlet,
+        triggerFlowlet: callFlowlet,
         surface,
         ...elementText,
         reactComponentName: reactComponentData?.name,
@@ -227,7 +227,7 @@ export function publish(options: InitOptions): void {
       };
       updateLastUIEvent(eventData);
       intercept(event); // making sure we can track changes to the Event object
-      setTriggerFlowlet(event, flowlet);
+      setTriggerFlowlet(event, callFlowlet);
       channel.emit('al_ui_event_capture', eventData);
     },
       true, // useCapture
