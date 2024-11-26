@@ -95,7 +95,7 @@ const MAX_CAPTURE_TO_BUBBLE_DELAY_MS = 500;
 
 type CurrentUIEvent = {
   data: ALUIEventData,
-  timedEmitter: TimedTrigger,
+  timedEmitter?: TimedTrigger,
 };
 
 type EventHandlerMap = DocumentEventMap;
@@ -225,9 +225,13 @@ function getCommonEventData<T extends keyof DocumentEventMap>(eventConfig: UIEve
   };
 }
 
-let lastUIEvent: CurrentUIEvent | null;
-export function getCurrentUIEventData(): ALUIEventData | null | undefined {
-  return lastUIEvent?.data;
+const LATEST_UI_KEY = 'latest_ui_event';
+const LAST_UI_EVENT_MAP = new Map<typeof LATEST_UI_KEY | ALUIEvent['event'], CurrentUIEvent>();
+export function getCurrentUIEventData(event: ALUIEvent['event'] | null = null): ALUIEventData | null | undefined {
+  if (event != null) {
+    return LAST_UI_EVENT_MAP.get(event)?.data;
+  }
+  return LAST_UI_EVENT_MAP.get(LATEST_UI_KEY)?.data;
 }
 
 /**
@@ -314,9 +318,10 @@ export function publish(options: InitOptions): void {
      * our bubble handler will not be called, so we trigger it rightaway
      */
     IEvent.stopPropagation.onBeforeCallObserverAdd(function (this) {
+      const lastUIEvent = LAST_UI_EVENT_MAP.get(eventName);
       if (lastUIEvent != null && lastUIEvent.data.domEvent === this) {
         lastUIEvent.data.metadata.propagation_was_stopped = "true";
-        lastUIEvent.timedEmitter.run();
+        lastUIEvent.timedEmitter?.run();
       }
     });
 
@@ -334,6 +339,7 @@ export function publish(options: InitOptions): void {
        * Therefore, we fire the second one here, instead of registering a
        * listener for the bubble events.
        */
+      const lastUIEvent = LAST_UI_EVENT_MAP.get(eventName);
       if (lastUIEvent != null) {
         const { data, timedEmitter } = lastUIEvent;
         if (data.event === eventName && data.domEvent.target === event.target) {
@@ -343,7 +349,7 @@ export function publish(options: InitOptions): void {
            * al_ui_event_capture event.
            */
           Object.assign(data.metadata, uiEventData.metadata);
-          timedEmitter.run();
+          timedEmitter?.run();
         }
       }
     };
@@ -356,9 +362,10 @@ export function publish(options: InitOptions): void {
   }));
 
   function updateLastUIEvent(eventData: ALUIEventCaptureData) {
+    const lastUIEvent = LAST_UI_EVENT_MAP.get(eventData.event)
     if (lastUIEvent != null) {
       const { timedEmitter } = lastUIEvent;
-      timedEmitter.run();
+      timedEmitter?.run();
     }
 
     const data: ALUIEventData = {
@@ -366,13 +373,14 @@ export function publish(options: InitOptions): void {
       eventIndex: ALEventIndex.getNextEventIndex(),
     };
 
-    lastUIEvent = {
+    LAST_UI_EVENT_MAP.set(eventData.event, {
       data,
       timedEmitter: new TimedTrigger(timerFired => {
         data.metadata.has_timed_out_before_bubble = '' + timerFired;
         channel.emit('al_ui_event', data);
-        lastUIEvent = null;
+        LAST_UI_EVENT_MAP.delete(data.event);
       }, MAX_CAPTURE_TO_BUBBLE_DELAY_MS),
-    };
+    });
+    LAST_UI_EVENT_MAP.set(LATEST_UI_KEY, { data });
   }
 }
