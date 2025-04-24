@@ -112,6 +112,7 @@ function App() {
           {Object.keys(Modes).map(key => <option key={key} value={key}>{key}</option>)}
         </select>
         {Modes[mode]()}
+        <div>Test Phil & Xiaoling</div>
       </div>
     }
 
