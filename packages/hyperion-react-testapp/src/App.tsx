@@ -113,6 +113,7 @@ function App() {
         </select>
         {Modes[mode]()}
         <div>Test Phil & Xiaoling</div>
+        <div>Some completely new thing</div>
       </div>
     }
 
