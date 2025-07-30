@@ -30,7 +30,6 @@ export function init() {
   return;
   Flags.setFlags({
     preciseTriggerFlowlet: true,
-    optimizeInteractibiltyCheck: true,
   });
 
   return;

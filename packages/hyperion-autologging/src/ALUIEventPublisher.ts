@@ -13,7 +13,7 @@ import performanceAbsoluteNow from "hyperion-util/src/performanceAbsoluteNow";
 import ALElementInfo from './ALElementInfo';
 import * as ALEventIndex from "./ALEventIndex";
 import { ALID, getOrSetAutoLoggingID } from "./ALID";
-import { ALElementTextEvent, TrackEventHandlerConfig, enableUIEventHandlers, getElementTextEvent, getInteractable, isTrackedEvent } from "./ALInteractableDOMElement";
+import { ALElementTextEvent, InteractableMatcher, TrackEventHandlerConfig, enableUIEventHandlers, getElementTextEvent, getInteractable, isTrackedEvent } from "./ALInteractableDOMElement";
 import { ReactComponentData } from "./ALReactUtils";
 import { getSurfacePath } from "./ALSurfaceUtils";
 import { ALElementEvent, ALExtensibleEvent, ALFlowletEvent, ALLoggableEvent, ALMetadataEvent, ALPageEvent, ALReactElementEvent, ALSharedInitOptions, ALTimedEvent, Metadata } from "./ALType";
@@ -106,8 +106,11 @@ type UIEventConfigMap = {
     eventName: K,
     // A callable filter for this event, returning true if the event should be emitted, or false if it should be discarded up front
     eventFilter?: (domEvent: EventHandlerMap[K]) => boolean;
-    // Whether to limit to elements that are "interactable", i.e. those that have event handlers registered to the element.  Defaults to true.
-    interactableElementsOnly?: boolean;
+    // Whether to limit to elements that are "interactable", i.e. those that have event handlers registered to the element. If defined, enforces interactable.
+    interactableElementsOnly?: {
+      enabled: boolean;
+      isInteractableMatcher?: InteractableMatcher;
+    };
     // Whether to cache element's react information on capture, defaults to false.
     cacheElementReactInfo?: boolean;
     /**
@@ -164,15 +167,16 @@ export function trackAndEnableUIEventHandlers(eventName: UIEventConfig['eventNam
 function getCommonEventData<T extends keyof DocumentEventMap>(eventConfig: UIEventConfig, eventName: T, event: DocumentEventMap[T]): CommonEventData | null {
   const eventTimestamp = performanceAbsoluteNow();
 
-  const { eventFilter, interactableElementsOnly = true } = eventConfig;
+  const { eventFilter, interactableElementsOnly = { enabled: false } } = eventConfig;
 
   if (eventFilter && !eventFilter(event as any)) {
     return null;
   }
 
-  let element: Element | null = null;
+  let element: Element | null | undefined = null;
   let autoLoggingID: ALID | null = null;
-  if (interactableElementsOnly) {
+  let metadata: Metadata = {};
+  if (interactableElementsOnly.enabled) {
     /**
      * Because of how UI events work in browser, one could for example click anywhere
      * on a sub-tree an element and the event handler of that element will handle the event
@@ -182,10 +186,15 @@ function getCommonEventData<T extends keyof DocumentEventMap>(eventConfig: UIEve
      * We use that as the base of event to ensure the text, surface, ... for events
      * remain consistent no matter where the user actually clicked, hovered, ...
      */
-    element = getInteractable(event.target, eventName);
+    const intResult = getInteractable(event.target, eventName, false, undefined, interactableElementsOnly.isInteractableMatcher);
+    element = intResult?.interactable;
     if (element == null) {
       return null;
     }
+    if (intResult?.metadata) {
+      console.log('intResult?.metadata', intResult?.metadata);
+    }
+    metadata = intResult?.metadata ?? {};
     autoLoggingID = getOrSetAutoLoggingID(element);
   }
   else {
@@ -193,7 +202,6 @@ function getCommonEventData<T extends keyof DocumentEventMap>(eventConfig: UIEve
   }
 
   let value: string | undefined;
-  const metadata: Metadata = {};
   if (eventName === 'change' && element) {
     switch (element.nodeName) {
       case 'INPUT': {

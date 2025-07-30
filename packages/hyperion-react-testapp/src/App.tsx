@@ -18,6 +18,7 @@ import { PortalBodyContainerComponent } from './component/PortalComponent';
 import TextComponent from './component/TextComponent';
 import RecursiveFuncComponent from './component/RecursiveFuncComponent';
 import SVGClickComponent from './component/SVGClickComponent';
+import { MousedownInteractableComponent } from './component/MousedownInteractableComponent';
 
 function InitComp() {
   const [count, setCount] = React.useState(0);
@@ -53,6 +54,7 @@ const Modes = {
     </div>
     <RecursiveFuncComponent i={3}></RecursiveFuncComponent>
     <SVGClickComponent></SVGClickComponent>
+    <MousedownInteractableComponent/>
   </>,
   'ElementText': () => <div>
     <ElementNameComponent />

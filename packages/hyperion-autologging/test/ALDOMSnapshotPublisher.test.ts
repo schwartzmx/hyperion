@@ -26,6 +26,7 @@ describe("dom snapshot publisher", () => {
         {
           cacheElementReactInfo: true,
           eventName: 'click',
+          interactableElementsOnly: { enabled: true }
         }
       ]
     });

@@ -9,8 +9,8 @@ import * as IReactComponent from "hyperion-react/src/IReactComponent";
 import type * as Types from "hyperion-util/src/Types";
 import type { UIEventConfig } from "./ALUIEventPublisher";
 import { getElementSurface } from "./ALSurfaceUtils";
-import { getFlags } from "hyperion-globals";
 import { getVirtualPropertyValue, setVirtualPropertyValue } from "hyperion-core/src/intercept";
+import { Metadata } from "./ALType";
 
 'use strict';
 
@@ -68,73 +68,71 @@ const EventHandlerTrackerAttribute = `data-interactable`;
 
 const InteractableAncestor = `interactableAncestor`;
 type InteractableAncestorCache = {
-  [index: string]: (Element | null)[];
+  [index: string]: ({ interactable: Element | null, metadata?: Metadata } | null)[];
 }
 
-let getInteractableImpl: (node: Element, eventName: UIEventConfig['eventName'], requireHandlerAssigned: boolean) => Element | null = (node, eventName, requireHandlerAssigned) => {
-  function getInteractableOptimized(node: Element, eventName: UIEventConfig['eventName'], requireHandlerAssigned: boolean, selectorString?: string): Element | null {
-    /**
-     * We should be careful to only cache the result based on given arguments. We use a map from eventName to a array based on requiredHandlerAassigned
-     * In this way, each node may point to its closest ancestor that matches the criteria of the interactablity.
-     * The hope is that gradually (specially with mouseover & mousemove) most of this data is calculated and cached, hence reducing the need
-     * for costly computation.
-     */
-    let cached: InteractableAncestorCache | undefined;
-    cached = getVirtualPropertyValue<InteractableAncestorCache>(node, InteractableAncestor);
-    let interactable: Element | null | undefined = cached?.[eventName]?.[requireHandlerAssigned ? 0 : 1];
-    if (interactable !== void 0) { // Not undefined means we have computed it before
-      return interactable;
-    }
+type InteractableMatcherResult = { isMatch: boolean, metadata?: Metadata } | null;
+export type InteractableMatcher = (element: Element) => InteractableMatcherResult;
 
-    // https://www.w3.org/TR/2011/WD-html5-20110525/interactive-elements.html
-    selectorString ??= `[${EventHandlerTrackerAttribute}*="${eventName}"]${requireHandlerAssigned ? '' : ',input,button,select,option,details,dialog,summary,a[href]'}`;
-    const element = node;
-    if ((element.matches(selectorString) || elementHasEventHandler(element, eventName as HTMLElementEventNames)) && !ignoreInteractiveElement(element)) {
-      interactable = element;
-    } else if (element.parentElement) {
-      interactable = getInteractableOptimized(element.parentElement, eventName, requireHandlerAssigned, selectorString);
-    } else {
-      interactable = null; // We also cache null to indicate we have already tried for this element. May be unsafe!
-    }
 
-    cached ??= {};
-    const tmp = cached[eventName] ??= [];
-    tmp[requireHandlerAssigned ? 0 : 1] = interactable;
-    setVirtualPropertyValue<InteractableAncestorCache>(node, InteractableAncestor, cached);
-    return interactable;
-  };
-
-  function getInteractableUnoptimized(node: Element, eventName: UIEventConfig['eventName'], requireHandlerAssigned: boolean): Element | null {
-    // https://www.w3.org/TR/2011/WD-html5-20110525/interactive-elements.html
-    const selectorString = `[${EventHandlerTrackerAttribute}*="${eventName}"]${requireHandlerAssigned ? '' : ',input,button,select,option,details,dialog,summary,a[href]'}`;
-    for (let element: Element | null = node; element != null; element = element.parentElement) {
-      if (element.matches(selectorString) || elementHasEventHandler(element, eventName as HTMLElementEventNames)) {
-        if (ignoreInteractiveElement(element)) {
-          continue;
-        }
-        return element;
-      }
-    }
-    return null;
-  };
-
-  const shouldOptimizeInteractivityCheck = getFlags()?.optimizeInteractibiltyCheck;
-  getInteractableImpl = (shouldOptimizeInteractivityCheck) ? getInteractableOptimized : getInteractableUnoptimized;
-  return getInteractableImpl(node, eventName, requireHandlerAssigned);
+export function isInteractableDefault(
+  node: Element,
+  eventName: UIEventConfig['eventName'],
+  requireHandlerAssigned: boolean,
+  selectorString?: string,
+): InteractableMatcherResult {
+  selectorString ??= `[${EventHandlerTrackerAttribute}*="${eventName}"]${requireHandlerAssigned ? '' : ',input,button,select,option,details,dialog,summary,a[href]'}`;
+  return { isMatch: (node.matches(selectorString) || elementHasEventHandler(node, eventName as HTMLElementEventNames)) && !ignoreInteractiveElement(node) };
 }
 
 export function getInteractable(
   node: EventTarget | null,
   eventName: UIEventConfig['eventName'],
-  // Whether to require an actual handler is assigned to determine interactiveness, rather than including "interactive" element tags
   requireHandlerAssigned: boolean = false,
-): Element | null {
+  selectorString?: string,
+  isInteractableMatcher?: InteractableMatcher
+): { interactable: Element | null, metadata?: Metadata } {
   if (!(node instanceof Element)) {
-    return null;
+    return { interactable: null };
+  }
+  /**
+   * We should be careful to only cache the result based on given arguments. We use a map from eventName to a array based on requiredHandlerAassigned
+   * In this way, each node may point to its closest ancestor that matches the criteria of the interactablity.
+   * The hope is that gradually (specially with mouseover & mousemove) most of this data is calculated and cached, hence reducing the need
+   * for costly computation.
+   */
+  let cached: InteractableAncestorCache | undefined;
+  cached = getVirtualPropertyValue<InteractableAncestorCache>(node, InteractableAncestor);
+  let interactable: { interactable: Element | null, metadata?: Metadata } | null | undefined = cached?.[eventName]?.[requireHandlerAssigned ? 0 : 1];
+  if (interactable?.interactable !== void 0) { // Not undefined means we have computed it before
+    return interactable;
   }
 
-  return getInteractableImpl(node, eventName, requireHandlerAssigned);
+  // https://www.w3.org/TR/2011/WD-html5-20110525/interactive-elements.html
+  selectorString ??= `[${EventHandlerTrackerAttribute}*="${eventName}"]${requireHandlerAssigned ? '' : ',input,button,select,option,details,dialog,summary,a[href]'}`;
+  const element = node;
+  let interactableResult: InteractableMatcherResult = null;
+  if (isInteractableMatcher != null) {
+    interactableResult = isInteractableMatcher(element);
+    console.log('Test', interactableResult)
+  } else {
+    interactableResult = isInteractableDefault(element, eventName, requireHandlerAssigned, selectorString);
+  }
+  if (interactableResult?.isMatch) {
+    interactable = { interactable: element, metadata: interactableResult?.metadata };
+  } else if (element.parentElement) {
+    interactable = getInteractable(element.parentElement, eventName, requireHandlerAssigned, selectorString);
+  } else {
+    interactable = { interactable: null }; // We also cache null to indicate we have already tried for this element. May be unsafe!
+  }
+
+  cached ??= {};
+  const tmp = cached[eventName] ??= [];
+  tmp[requireHandlerAssigned ? 0 : 1] = interactable;
+  setVirtualPropertyValue<InteractableAncestorCache>(node, InteractableAncestor, cached);
+  return interactable;
 }
+
 
 function elementHasEventHandler(node: HTMLElementWithHandlers, eventName: HTMLElementEventNames): boolean {
   const handler = node[`on${eventName}`];
@@ -168,7 +166,7 @@ let ignoreInteractiveElement: (node: Element) => boolean = node => {
     return shouldIgnore;
   }
 
-  ignoreInteractiveElement = getFlags()?.optimizeInteractibiltyCheck ? ignoreInteractiveElementOptimized : ignoreInteractiveElementCore;
+  ignoreInteractiveElement = ignoreInteractiveElementOptimized;
   return ignoreInteractiveElement(node);
 }
 
@@ -525,7 +523,7 @@ function getTextFromElementsByIds(domSource: ALDOMTextSource, source: ALElementT
 
   for (let i = 0; i < indirectSources.length; i++) {
     if (i) {
-      results.push({ text: " ", source, elements: []}); // Insert space between values
+      results.push({ text: " ", source, elements: [] }); // Insert space between values
     }
 
     domSource.element = indirectSources[i];
@@ -719,15 +717,15 @@ export function getElementTextEvent(
  * sort of input element or a sub component of a compsite component. So, we can now go up the tree
  * to find the interactable element and then look into that sub-tree for text.
  */
-  if (results.length === 0 && tryInteractableParentEventName) {
+  if (results.length === 0 && tryInteractableParentEventName && element.parentElement != null) {
     const parentInteractable = getInteractable(
       element.parentElement,
       tryInteractableParentEventName,
       // Limit to elements with installed handlers for interactiveness check.
       true
     );
-    if (parentInteractable) {
-      getElementName(parentInteractable, surface, results, 0, options);
+    if (parentInteractable?.interactable != null) {
+      getElementName(parentInteractable.interactable, surface, results, 0, options);
     }
   }
 

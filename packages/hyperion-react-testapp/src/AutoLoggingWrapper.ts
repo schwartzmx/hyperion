@@ -3,7 +3,7 @@
  */
 
 import * as Visualizer from "hyperion-autologging-visualizer/src/Visualizer";
-import { ALElementText } from "hyperion-autologging/src/ALInteractableDOMElement";
+import { ALElementText, isInteractableDefault } from "hyperion-autologging/src/ALInteractableDOMElement";
 import * as AutoLogging from "hyperion-autologging/src/AutoLogging";
 import * as IReact from "hyperion-react/src/IReact";
 import * as IReactDOM from "hyperion-react/src/IReactDOM";
@@ -27,7 +27,6 @@ globalThis.__DEV__ = true;
 export function init() {
   Flags.setFlags({
     preciseTriggerFlowlet: true,
-    optimizeInteractibiltyCheck: true,
     enableDynamicChildTracking: true,
     optimizeSurfaceRendering: true,
   });
@@ -104,6 +103,18 @@ export function init() {
           eventName: 'click',
           cacheElementReactInfo: true,
           enableElementTextExtraction: true,
+          interactableElementsOnly: {
+            enabled: true,
+            isInteractableMatcher: (domElement) => {
+              if (isInteractableDefault(domElement, 'click', false)) {
+                return { isMatch: true, metadata: { ext_type: 'click1' } };
+              }
+              else if (isInteractableDefault(domElement, 'mousedown', true)) {
+                return { isMatch: true, metadata: { ext_type: 'mousedown' } };
+              }
+              return { isMatch: false };
+            }
+          },
           eventFilter: (domEvent) => domEvent.isTrusted
         },
         {
@@ -115,14 +126,14 @@ export function init() {
         {
           eventName: 'keydown',
           cacheElementReactInfo: true,
-          interactableElementsOnly: false,
+          interactableElementsOnly: { enabled: false },
           enableElementTextExtraction: false,
           eventFilter: (domEvent) => domEvent.code === 'Enter',
         },
         {
           eventName: 'keyup',
           cacheElementReactInfo: true,
-          interactableElementsOnly: false,
+          interactableElementsOnly: { enabled: false },
           enableElementTextExtraction: false,
           eventFilter: (domEvent) => domEvent.code === 'Enter',
         },
@@ -130,7 +141,7 @@ export function init() {
           eventName: 'change',
           cacheElementReactInfo: true,
           enableElementTextExtraction: true,
-          interactableElementsOnly: false,
+          interactableElementsOnly: { enabled: false },
         },
         // {
         //   eventName: 'mouseover',

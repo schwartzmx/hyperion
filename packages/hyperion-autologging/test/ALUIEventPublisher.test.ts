@@ -24,6 +24,7 @@ describe("UI event publisher", () => {
         {
           cacheElementReactInfo: true,
           eventName: 'click',
+          interactableElementsOnly: { enabled: true }
         }
       ]
     });
