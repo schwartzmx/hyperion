@@ -13,7 +13,7 @@ import performanceAbsoluteNow from "hyperion-util/src/performanceAbsoluteNow";
 import ALElementInfo from './ALElementInfo';
 import * as ALEventIndex from "./ALEventIndex";
 import { ALID, getOrSetAutoLoggingID } from "./ALID";
-import { ALElementTextEvent, TrackEventHandlerConfig, enableUIEventHandlers, getElementTextEvent, getInteractable, isTrackedEvent } from "./ALInteractableDOMElement";
+import { ALElementTextEvent, TrackEventHandlerConfig, enableUIEventHandlers, getElementTextEvent, getInteractable, getInteractableEnhanced, isTrackedEvent } from "./ALInteractableDOMElement";
 import { ReactComponentData } from "./ALReactUtils";
 import { getSurfacePath } from "./ALSurfaceUtils";
 import { ALElementEvent, ALExtensibleEvent, ALFlowletEvent, ALLoggableEvent, ALMetadataEvent, ALPageEvent, ALReactElementEvent, ALSharedInitOptions, ALTimedEvent, Metadata } from "./ALType";
@@ -101,6 +101,32 @@ type CurrentUIEvent = {
 
 type EventHandlerMap = DocumentEventMap;
 
+// NEW: Context provided to callback during tree walk
+export type InteractableWalkContext = {
+  currentElement: Element;
+  targetElement: Element;
+  eventName: keyof EventHandlerMap;
+  depth: number;
+  // Collected data from previous elements in the walk
+  collectedData: Map<string, any>;
+  // Standard interactable check result
+  isStandardInteractable: boolean;
+  // Cached interactive parent (if exists)
+  cachedInteractiveParent: Element | null;
+};
+
+// NEW: Result from callback
+export type InteractableCallbackResult = {
+  // Whether this element should be considered interactable
+  isInteractable?: boolean;
+  // Whether to continue walking up the tree
+  continueWalk?: boolean;
+  // Data to collect for this element
+  collectData?: Record<string, any>;
+  // Override the final interactive element
+  overrideInteractiveElement?: Element;
+};
+
 type UIEventConfigMap = {
   [K in keyof EventHandlerMap]: Readonly<{
     eventName: K,
@@ -108,6 +134,10 @@ type UIEventConfigMap = {
     eventFilter?: (domEvent: EventHandlerMap[K]) => boolean;
     // Whether to limit to elements that are "interactable", i.e. those that have event handlers registered to the element.  Defaults to true.
     interactableElementsOnly?: boolean;
+    // NEW: Callback for custom interactable detection and data collection
+    interactableCallback?: (context: InteractableWalkContext) => InteractableCallbackResult;
+    // NEW: Alternative event types to consider as interactable
+    interactableTypeExtension?: Array<keyof EventHandlerMap>;
     // Whether to cache element's react information on capture, defaults to false.
     cacheElementReactInfo?: boolean;
     /**
@@ -164,7 +194,7 @@ export function trackAndEnableUIEventHandlers(eventName: UIEventConfig['eventNam
 function getCommonEventData<T extends keyof DocumentEventMap>(eventConfig: UIEventConfig, eventName: T, event: DocumentEventMap[T]): CommonEventData | null {
   const eventTimestamp = performanceAbsoluteNow();
 
-  const { eventFilter, interactableElementsOnly = true } = eventConfig;
+  const { eventFilter, interactableElementsOnly = true, interactableCallback, interactableTypeExtension } = eventConfig;
 
   if (eventFilter && !eventFilter(event as any)) {
     return null;
@@ -172,6 +202,8 @@ function getCommonEventData<T extends keyof DocumentEventMap>(eventConfig: UIEve
 
   let element: Element | null = null;
   let autoLoggingID: ALID | null = null;
+  const metadata: Metadata = {};
+
   if (interactableElementsOnly) {
     /**
      * Because of how UI events work in browser, one could for example click anywhere
@@ -182,7 +214,33 @@ function getCommonEventData<T extends keyof DocumentEventMap>(eventConfig: UIEve
      * We use that as the base of event to ensure the text, surface, ... for events
      * remain consistent no matter where the user actually clicked, hovered, ...
      */
-    element = getInteractable(event.target, eventName);
+
+    // Use enhanced version if callback or extensions are provided
+    if (interactableCallback || interactableTypeExtension) {
+      const targetElement = event.target instanceof Element ? event.target : null;
+      if (targetElement) {
+        const result = getInteractableEnhanced(
+          targetElement,
+          eventName,
+          true, // requireHandlerAssigned
+          interactableCallback,
+          interactableTypeExtension
+        );
+
+        element = result.element;
+
+        // Store collected data in metadata for downstream use
+        if (result.collectedData) {
+          result.collectedData.forEach((value, key) => {
+            metadata[`collected_${key}`] = String(value);
+          });
+        }
+      }
+    } else {
+      // Use standard version for backward compatibility
+      element = getInteractable(event.target, eventName);
+    }
+
     if (element == null) {
       return null;
     }
@@ -193,7 +251,6 @@ function getCommonEventData<T extends keyof DocumentEventMap>(eventConfig: UIEve
   }
 
   let value: string | undefined;
-  const metadata: Metadata = {};
   if (eventName === 'change' && element) {
     switch (element.nodeName) {
       case 'INPUT': {

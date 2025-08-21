@@ -11,6 +11,7 @@ import type { UIEventConfig } from "./ALUIEventPublisher";
 import { getElementSurface } from "./ALSurfaceUtils";
 import { getFlags } from "hyperion-globals";
 import { getVirtualPropertyValue, setVirtualPropertyValue } from "hyperion-core/src/intercept";
+import performanceAbsoluteNow from "hyperion-util/src/performanceAbsoluteNow";
 
 'use strict';
 
@@ -69,6 +70,234 @@ const EventHandlerTrackerAttribute = `data-interactable`;
 const InteractableAncestor = `interactableAncestor`;
 type InteractableAncestorCache = {
   [index: string]: (Element | null)[];
+}
+
+// NEW: Enhanced caching with pointer back and collected data
+const InteractiveParentPointer = `interactiveParentPointer`;
+const ClientDimensionsCache = `clientDimensionsCache`;
+
+type InteractiveParentCache = {
+  [eventName: string]: {
+    interactiveParent: Element | null;
+    collectedData?: Map<string, any>;
+    timestamp: number; // For cache invalidation
+  }
+};
+
+type ClientDimensionsCache = {
+  isFullViewport: boolean;
+  timestamp: number;
+  windowDimensions: { width: number; height: number };
+};
+
+// Import the new types from ALUIEventPublisher
+import type { InteractableWalkContext, InteractableCallbackResult } from './ALUIEventPublisher';
+
+// Constants for optimization
+const MAX_WALK_DEPTH = 50;
+const CACHE_VALIDITY_MS = 5000; // 5 seconds
+const DIMENSIONS_CACHE_VALIDITY_MS = 1000; // 1 second for layout-sensitive checks
+
+// Helper functions for cache validation
+function isCacheValid(timestamp: number): boolean {
+  return (performanceAbsoluteNow() - timestamp) < CACHE_VALIDITY_MS;
+}
+
+function isCacheDimensionsValid(cached: ClientDimensionsCache): boolean {
+  const now = performanceAbsoluteNow();
+  const isTimeValid = (now - cached.timestamp) < DIMENSIONS_CACHE_VALIDITY_MS;
+  const areDimensionsValid = cached.windowDimensions.width === window.innerWidth &&
+    cached.windowDimensions.height === window.innerHeight;
+  return isTimeValid && areDimensionsValid;
+}
+
+// Enhanced interactable detection with callback support and data collection
+export function getInteractableEnhanced(
+  node: Element,
+  eventName: UIEventConfig['eventName'],
+  requireHandlerAssigned: boolean = false,
+  callback?: (context: InteractableWalkContext) => InteractableCallbackResult,
+  interactableTypeExtension?: Array<keyof DocumentEventMap>,
+  selectorString?: string
+): { element: Element | null; collectedData?: Map<string, any> } {
+
+  // Check for cached pointer back
+  const cached = getVirtualPropertyValue<InteractiveParentCache>(node, InteractiveParentPointer);
+  const cachedResult = cached?.[eventName];
+
+  if (cachedResult && isCacheValid(cachedResult.timestamp)) {
+    return {
+      element: cachedResult.interactiveParent,
+      collectedData: cachedResult.collectedData
+    };
+  }
+
+  // Initialize walk context
+  const collectedData = new Map<string, any>();
+  let currentElement: Element | null = node;
+  let depth = 0;
+  let interactiveElement: Element | null = null;
+
+  // Default selector string
+  selectorString ??= `[${EventHandlerTrackerAttribute}*="${eventName}"]${requireHandlerAssigned ? '' : ',input,button,select,option,details,dialog,summary,a[href]'}`;
+
+  // Walk up the tree
+  while (currentElement && depth < MAX_WALK_DEPTH) {
+    const isStandardInteractable = checkStandardInteractable(currentElement, eventName, requireHandlerAssigned, selectorString, interactableTypeExtension);
+
+    // Create context for callback
+    const context: InteractableWalkContext = {
+      currentElement,
+      targetElement: node,
+      eventName: eventName as any,
+      depth,
+      collectedData,
+      isStandardInteractable,
+      cachedInteractiveParent: cachedResult?.interactiveParent || null
+    };
+
+    // Call custom callback if provided
+    let callbackResult: InteractableCallbackResult | undefined;
+    if (callback) {
+      callbackResult = callback(context);
+
+      // Collect data if specified
+      if (callbackResult.collectData) {
+        Object.entries(callbackResult.collectData).forEach(([key, value]) => {
+          collectedData.set(`${depth}_${key}`, value);
+        });
+      }
+    }
+
+    // Check if callback wants to stop walking early
+    if (callbackResult?.continueWalk === false) {
+      // If callback says this element is interactable, use it
+      if (callbackResult.isInteractable) {
+        interactiveElement = callbackResult.overrideInteractiveElement ?? currentElement;
+      }
+      break;
+    }
+
+    // Determine if this element is interactable
+    const isInteractable = callbackResult?.isInteractable ?? isStandardInteractable;
+
+    // Set interactive element if found, but continue walking if callback wants to collect more data
+    if (isInteractable && !ignoreInteractiveElementOptimized(currentElement) && !interactiveElement) {
+      interactiveElement = callbackResult?.overrideInteractiveElement ?? currentElement;
+
+      // If no callback or callback doesn't want to continue, break here
+      if (!callback || callbackResult?.continueWalk !== true) {
+        break;
+      }
+    }
+
+    currentElement = currentElement.parentElement;
+    depth++;
+  }
+
+  // Cache the result with pointer back to ALL elements in the path
+  cacheInteractiveParentForPath(node, interactiveElement, eventName, collectedData, depth);
+
+  return { element: interactiveElement, collectedData };
+}
+
+// Helper function to check standard interactable criteria
+function checkStandardInteractable(
+  element: Element,
+  eventName: UIEventConfig['eventName'],
+  _requireHandlerAssigned: boolean,
+  selectorString: string,
+  interactableTypeExtension?: Array<keyof DocumentEventMap>
+): boolean {
+  // First check if element matches the primary event
+  if (element.matches(selectorString) || elementHasEventHandler(element, eventName as HTMLElementEventNames)) {
+    return true;
+  }
+
+  // If primary event doesn't match, check extensions
+  if (interactableTypeExtension) {
+    for (const extensionType of interactableTypeExtension) {
+      if (elementHasEventHandler(element, extensionType as HTMLElementEventNames)) {
+        return true;
+      }
+
+      // Also check if the element has the interactable attribute for the extension type
+      const extensionSelector = `[${EventHandlerTrackerAttribute}*="${extensionType}"]`;
+      if (element.matches(extensionSelector)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+// Cache pointer back for all elements in the traversal path
+function cacheInteractiveParentForPath(
+  startElement: Element,
+  interactiveParent: Element | null,
+  eventName: UIEventConfig['eventName'],
+  collectedData: Map<string, any>,
+  depth: number
+): void {
+  let currentElement: Element | null = startElement;
+  let currentDepth = 0;
+
+  while (currentElement && currentDepth <= depth) {
+    const cache = getVirtualPropertyValue<InteractiveParentCache>(currentElement, InteractiveParentPointer) || {};
+
+    cache[eventName] = {
+      interactiveParent,
+      collectedData: new Map(collectedData), // Clone the collected data
+      timestamp: performanceAbsoluteNow()
+    };
+
+    setVirtualPropertyValue(currentElement, InteractiveParentPointer, cache);
+
+    currentElement = currentElement.parentElement;
+    currentDepth++;
+  }
+}
+
+// Optimized clientHeight/Width checking with smart heuristics
+function ignoreInteractiveElementOptimized(node: Element): boolean {
+  // Check cached dimensions first
+  const cached = getVirtualPropertyValue<ClientDimensionsCache>(node, ClientDimensionsCache);
+
+  if (cached && isCacheDimensionsValid(cached)) {
+    return cached.isFullViewport;
+  }
+
+  // Fast checks first (no layout)
+  if (node.tagName === 'BODY' || node.tagName === 'HTML') {
+    return true;
+  }
+
+  // Smart heuristics before expensive layout checks
+  if (isLikelyFullViewportElement(node)) {
+    const isFullViewport = checkClientDimensions(node);
+
+    // Cache the result
+    setVirtualPropertyValue(node, ClientDimensionsCache, {
+      isFullViewport,
+      timestamp: performanceAbsoluteNow(),
+      windowDimensions: { width: window.innerWidth, height: window.innerHeight }
+    });
+
+    return isFullViewport;
+  }
+
+  return false;
+}
+
+function isLikelyFullViewportElement(element: Element): boolean {
+  // Heuristics to avoid expensive checks on obviously non-viewport elements
+  const rect = element.getBoundingClientRect();
+  return rect.width > window.innerWidth * 0.8 && rect.height > window.innerHeight * 0.8;
+}
+
+function checkClientDimensions(node: Element): boolean {
+  return node.clientHeight === window.innerHeight && node.clientWidth === window.innerWidth;
 }
 
 let getInteractableImpl: (node: Element, eventName: UIEventConfig['eventName'], requireHandlerAssigned: boolean) => Element | null = (node, eventName, requireHandlerAssigned) => {
@@ -525,7 +754,7 @@ function getTextFromElementsByIds(domSource: ALDOMTextSource, source: ALElementT
 
   for (let i = 0; i < indirectSources.length; i++) {
     if (i) {
-      results.push({ text: " ", source, elements: []}); // Insert space between values
+      results.push({ text: " ", source, elements: [] }); // Insert space between values
     }
 
     domSource.element = indirectSources[i];
