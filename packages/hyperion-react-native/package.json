@@ -6,7 +6,10 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "MIGRATION.md",
+    "babel-plugin-stable-event-props.cjs"
   ],
   "exports": {
     ".": {
@@ -21,10 +24,19 @@
       "types": "./dist/jsx-dev-runtime.d.ts",
       "default": "./dist/jsx-dev-runtime.js"
     },
+    "./channel": {
+      "types": "./dist/channel.d.ts",
+      "default": "./dist/channel.js"
+    },
+    "./plugins": {
+      "types": "./dist/plugins.d.ts",
+      "default": "./dist/plugins.js"
+    },
     "./legacy-runtime-installer": {
       "types": "./dist/legacy-runtime-installer.d.ts",
       "default": "./dist/legacy-runtime-installer.js"
-    }
+    },
+    "./babel-plugin-stable-event-props": "./babel-plugin-stable-event-props.cjs"
   },
   "scripts": {
     "clean": "node scripts/clean.cjs",

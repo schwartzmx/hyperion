@@ -4,30 +4,12 @@
 
 'use strict';
 
-export * as AutoLogging from './AutoLogging';
-export type { InitOptions } from './AutoLogging';
+export * as AutoLogging from './ALPluginAutoLogging';
 export type { PluginInitOptions } from './ALPluginAutoLogging';
-export {
-  createAutoLoggingChannel,
-  type AutoLoggingChannel,
-} from 'hyperion-autologging/src/ALChannel';
 export type {
   ALReactNativePlugin,
   ALReactNativeRuntimeContext,
 } from './ALRuntime';
-export type {
-  JSXDevRuntimeModuleExports,
-  JSXRuntimeModuleExports,
-  ReactModuleExports,
-} from './ReactNativeElementObservation';
-export {
-  DEFAULT_CONFIG,
-  DEFAULT_INTERCEPT_PROPS,
-  mapPropToEventType,
-} from './ALConfig';
-export type { ALConfig, ALFeature, ALFeatureConfig } from './ALConfig';
-export { createReactNativePlugins } from './ALCompatibility';
-export type { CompatibilityInitOptions, ReactOptions } from './ALCompatibility';
 export {
   reactNativeAppLifecycle,
   REACT_NATIVE_APP_LIFECYCLE_PLUGIN,
@@ -57,14 +39,6 @@ export type {
   ALViewabilityInfo,
   ALViewToken,
 } from './ALListViewability';
-export {
-  extractElementInfo,
-  extractElementText,
-  extractLabel,
-  isLoggingSuppressed,
-  isTextInput,
-} from './ALLabelExtraction';
-export type { RNElementInfo, RNElementText } from './ALLabelExtraction';
 export {
   ALSurface,
   ALSurfaceData,
@@ -107,30 +81,11 @@ export type {
   ReactNativeModuleExports,
 } from './IReactNative';
 export type {
-  LegacyAutoLoggingOptions,
-  LegacyCallInterceptor,
-  LegacyComponentPropsOptions,
-  LegacyJSXRuntimeInterceptors,
-  LegacyReactModuleInterceptors,
-  LegacyReactOptions,
-} from './ALLegacyAutoLogging';
-export {
-  createObservedJSXFunction,
-  getJSXRuntimeBenchmarkPair,
-  installReactNativeJSXRuntime,
-  isElementInstrumenterInstalled,
-  isElementObservationEnabled,
-} from './ReactNativeElementObservation';
-export type {
   ALAppStateEventData,
-  ALChannelEventMap,
   ALDeepLinkEventData,
   ALDeepLinkSource,
   ALHeartbeatEventData,
   ALListImpressionEventData,
-  ALLegacyChannelEventMap,
-  ALLegacyReactComponentMountEventData,
-  ALLegacyReactComponentPropEventData,
   ALLoggableEvent,
   ALMobileEventContext,
   ALModernChannelEventMap,

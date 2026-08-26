@@ -85,6 +85,14 @@ for (const artifact of artifacts) {
         `${artifact} contains relative Haste import ${importedModule}`
       );
     }
+    if (
+      importedModule.startsWith('hyperionMobile') &&
+      importedModule.endsWith('.js')
+    ) {
+      throw new Error(
+        `${artifact} contains extension-qualified Haste import ${importedModule}`
+      );
+    }
     if (!importedModule.startsWith('hyperionMobile')) continue;
     if (
       !artifactSet.has(`${importedModule}.js`) &&
@@ -110,6 +118,28 @@ for (const artifact of artifacts) {
     throw new Error(
       `Unexpected sourceMappingURL in generated file: ${artifact}`
     );
+  }
+  if (/\brequire\s*\(\s*['"]__debug['"]\s*\)/.test(code)) {
+    throw new Error(
+      `${artifact} contains a statically resolved __debug require`
+    );
+  }
+}
+
+for (const artifact of artifacts.filter((name) =>
+  name.startsWith('hyperionMobileReactNative')
+)) {
+  const code = fs.readFileSync(path.join(outputDirectory, artifact), 'utf8');
+  const imports = getRuntimeSpecifiers(code);
+  for (const forbiddenDependency of [
+    'hyperionMobileCore',
+    'hyperionMobileReact',
+  ]) {
+    if (imports.includes(forbiddenDependency)) {
+      throw new Error(
+        `${artifact} depends on forbidden module ${forbiddenDependency}`
+      );
+    }
   }
 }
 
@@ -137,6 +167,18 @@ for (const portableArtifact of PORTABLE_NATIVE_ALIASES) {
     if (getRuntimeSpecifiers(portableCode).includes(forbiddenDependency)) {
       throw new Error(
         `${portableArtifact} eagerly imports ${forbiddenDependency}`
+      );
+    }
+  }
+  for (const [description, pattern] of [
+    ['window.document', /\bwindow\s*[.]\s*document\b/],
+    ['document query', /\bdocument\s*[.]\s*(?:querySelector|getElement)/],
+    ['DOM instanceof', /\binstanceof\s+(?:Node|Element|Attr)\b/],
+    ['DOMShadowPrototype', /\bDOMShadowPrototype\b/],
+  ]) {
+    if (pattern.test(portableCode)) {
+      throw new Error(
+        `${portableArtifact} contains DOM runtime code: ${description}`
       );
     }
   }
