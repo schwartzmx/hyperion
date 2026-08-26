@@ -3,11 +3,11 @@
  */
 
 import { useSyncExternalStore } from 'react';
-import {
-  createTransportEnvelope,
-  type ALModernChannelEventMap,
-  type ALTransportEnvelope,
-} from 'hyperion-react-native/plugins';
+import type {
+  ALModernChannelEventMap,
+  ALTransportEnvelope,
+} from 'hyperion-react-native/runtime';
+import { createTransportEnvelope } from 'hyperion-react-native/transport';
 import { APP_NAME, AUTO_LOGGING_CHANNEL } from './AutoLoggingConfig';
 
 export type EventType = keyof ALModernChannelEventMap;

@@ -5,6 +5,7 @@
 'use strict';
 
 import type { BaseChannelEventType } from 'hyperion-channel/src/Channel';
+import type { AutoLoggingChannel } from 'hyperion-autologging/src/ALChannel';
 import type { ALReactNativeEventMap } from './ALTypes';
 import {
   createReactNativePlugins,
@@ -30,7 +31,7 @@ export function init<
 >(options: InitOptions<EventMap>): boolean {
   if (isPluginInitOptions(options)) return initPlugins(options);
   return initPlugins({
-    channel: options.channel,
+    channel: options.channel as AutoLoggingChannel<ALReactNativeEventMap>,
     plugins: createReactNativePlugins(options),
   });
 }

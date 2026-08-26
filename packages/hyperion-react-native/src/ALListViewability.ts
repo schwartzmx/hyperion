@@ -17,7 +17,7 @@ import type {
   ALReactNativePlugin,
   ALReactNativeRuntimeContext,
 } from './ALRuntime';
-import { useSurface } from './ALSurface';
+import { useSurface } from './ALSurfaceContext';
 import type {
   ALListImpressionEventData,
   ALReactNativeEventMap,
@@ -268,3 +268,9 @@ function boundedNumber(
 function setIfDefined(target: object, key: string, value: unknown): void {
   if (value !== undefined) (target as Record<string, unknown>)[key] = value;
 }
+
+export default Object.freeze({
+  MAX_DEDUPED_ITEMS_PER_SCREEN,
+  reactNativeListImpressions,
+  useALListViewability,
+});

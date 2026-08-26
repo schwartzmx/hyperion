@@ -8,7 +8,7 @@ import {
   ALSurfaceData,
   type ALSurfaceDataNode,
   type ALSurfaceDataRoot,
-} from 'hyperion-react-native/plugins';
+} from 'hyperion-react-native/surfaces';
 import {
   clearDebugEvents,
   DEBUG_EVENT_TYPES,

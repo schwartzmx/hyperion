@@ -25,19 +25,6 @@ module.exports = makeMetroConfig({
     useWatchman: false,
     resolveRequest: useBaselineRuntime
       ? (context, moduleName, platform) => {
-          if (
-            moduleName === 'hyperion-react-native' ||
-            moduleName === 'hyperion-react-native/plugins' ||
-            moduleName === 'hyperion-react-native/channel'
-          ) {
-            return {
-              filePath: path.resolve(
-                __dirname,
-                'benchmark/HyperionBaseline.js'
-              ),
-              type: 'sourceFile',
-            };
-          }
           if (moduleName === 'hyperion-react-native/jsx-runtime') {
             return context.resolveRequest(
               context,
@@ -51,6 +38,18 @@ module.exports = makeMetroConfig({
               'react/jsx-dev-runtime',
               platform
             );
+          }
+          if (
+            moduleName === 'hyperion-react-native' ||
+            moduleName.startsWith('hyperion-react-native/')
+          ) {
+            return {
+              filePath: path.resolve(
+                __dirname,
+                'benchmark/HyperionBaseline.js'
+              ),
+              type: 'sourceFile',
+            };
           }
           return context.resolveRequest(context, moduleName, platform);
         }

@@ -6,6 +6,7 @@ import React, {
   forwardRef,
   memo,
   Suspense,
+  use,
   useCallback,
   useRef,
   useState,
@@ -23,15 +24,14 @@ import {
   View,
   type View as ViewInstance,
 } from 'react-native';
+import { ALSurface, ALSurfaceData } from 'hyperion-react-native/surfaces';
+import { logDeepLinkOpen } from 'hyperion-react-native/deep-links';
+import { logReactErrorBoundary } from 'hyperion-react-native/react-errors';
 import {
-  ALSurface,
-  ALSurfaceData,
   getCurrentScreen,
-  logDeepLinkOpen,
-  logReactErrorBoundary,
   setCurrentScreen,
-  useALListViewability,
-} from 'hyperion-react-native/plugins';
+} from 'hyperion-react-native/screens';
+import { useALListViewability } from 'hyperion-react-native/list-impressions';
 import { AutoLoggingInspector, SurfaceTreeInspector } from './DebugInspector';
 import { useDebugEvents } from './EventStore';
 
@@ -40,6 +40,11 @@ ALSurfaceData.root.setInheritedPropery('fixture_owner', 'test_app');
 const LazyFixture = React.lazy(async () => ({
   default: () => <Text>Suspense fixture resolved</Text>,
 }));
+const INITIAL_USE_FIXTURE = Promise.resolve('use() fixture ready');
+
+function SuspendedUseLabel({ resource }: { resource: Promise<string> }) {
+  return <Text testID="use-suspense-result">{use(resource)}</Text>;
+}
 
 const FixtureButton = memo(
   forwardRef<ViewInstance, { enabled: boolean; onPress(): void }>(
@@ -103,6 +108,8 @@ function FixtureContent(): React.JSX.Element {
   const [showDetails, setShowDetails] = useState(true);
   const [handlerEnabled, setHandlerEnabled] = useState(true);
   const [showSuspense, setShowSuspense] = useState(false);
+  const [useResource, setUseResource] = useState(INITIAL_USE_FIXTURE);
+  const [usePresses, setUsePresses] = useState(0);
   const [throwRender, setThrowRender] = useState(false);
   const [errorResetKey, setErrorResetKey] = useState(0);
   const [automaticPresses, setAutomaticPresses] = useState(0);
@@ -239,6 +246,27 @@ function FixtureContent(): React.JSX.Element {
           />
           <Suspense fallback={<Text>Suspense fallback</Text>}>
             {showSuspense ? <LazyFixture /> : null}
+          </Suspense>
+          <Button
+            onPress={() => {
+              setUseResource(
+                new Promise((resolve) => {
+                  setTimeout(() => resolve('use() retry resolved'), 500);
+                })
+              );
+            }}
+            title="Retry observed use() fixture"
+          />
+          <Suspense fallback={<Text>use() fixture suspended</Text>}>
+            <Pressable
+              accessibilityLabel="React use suspension action"
+              onPress={() => setUsePresses((value) => value + 1)}
+              style={styles.control}
+              testID="use-suspense-action"
+            >
+              <SuspendedUseLabel resource={useResource} />
+              <Text>Presses after retry: {usePresses}</Text>
+            </Pressable>
           </Suspense>
           <FixtureErrorBoundary resetKey={errorResetKey}>
             {throwRender ? (
